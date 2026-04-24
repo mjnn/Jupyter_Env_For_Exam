@@ -1,0 +1,30 @@
+# Virtual envs / local Python copies
+.venv312/
+python312/
+
+# Portable + CI build outputs
+dist/
+
+# Offline caches (large; regenerate with prepare-offline-*. scripts)
+offline-windows/wheels/
+offline-windows/.build-venv/
+offline-windows/python-3.12.8-amd64.exe
+offline-macos/wheels/
+offline-macos/.build-venv/
+offline-macos/python-3.12.8-macos11.pkg
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+
+# OS / IDE
+Thumbs.db
+.DS_Store
+.idea/
+.vscode/
+
+# Local tooling (optional)
+.cursor/

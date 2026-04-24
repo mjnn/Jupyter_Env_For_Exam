@@ -1,0 +1,36 @@
+# Build the macOS portable tarball on GitHub-hosted macOS (Apple Silicon).
+# Use when you do not have a Mac locally: push this repo to GitHub, run this workflow, download the artifact.
+name: Build portable macOS bundle
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_prepare_offline:
+        description: "Run prepare-offline-macos.sh first (downloads wheels; much slower, ~60–120+ min)"
+        type: boolean
+        default: false
+
+jobs:
+  portable-macos-arm64:
+    runs-on: macos-latest
+    timeout-minutes: 180
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare offline wheels (optional)
+        if: ${{ inputs.run_prepare_offline == true }}
+        run: chmod +x prepare-offline-macos.sh && ./prepare-offline-macos.sh
+
+      - name: Build portable bundle
+        run: chmod +x build-portable-macos.sh && ./build-portable-macos.sh
+
+      - name: List dist
+        run: ls -la dist/
+
+      - name: Upload tarball artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: JupyterExam-Portable-mac-arm64
+          path: dist/JupyterExam-Portable-mac-arm64.tar.gz
+          if-no-files-found: error

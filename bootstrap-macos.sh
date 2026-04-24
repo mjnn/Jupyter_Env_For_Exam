@@ -2,8 +2,8 @@
 set -euo pipefail
 
 PROJECT_ROOT="$(cd "$(dirname "$0")" && pwd)"
-VENV_PATH="$PROJECT_ROOT/.venv312"
-REQ_PATH="$PROJECT_ROOT/requirements-py312.txt"
+VENV_PATH="$PROJECT_ROOT/.venv38"
+REQ_PATH="$PROJECT_ROOT/requirements-py38.txt"
 
 echo "==> Checking uv..."
 if ! command -v uv >/dev/null 2>&1; then
@@ -17,14 +17,14 @@ if ! command -v uv >/dev/null 2>&1; then
   exit 1
 fi
 
-echo "==> Creating virtual environment with Python 3.12.8..."
-uv venv --python 3.12.8 "$VENV_PATH"
+echo "==> Creating virtual environment with Python 3.8.10..."
+uv venv --python 3.8.10 "$VENV_PATH"
 VENV_PY="$VENV_PATH/bin/python"
 
 echo "==> Verifying Python version in venv..."
 PY_VERSION="$("$VENV_PY" -c 'import platform; print(platform.python_version())')"
-if [[ "$PY_VERSION" != "3.12.8" ]]; then
-  echo "Unexpected Python version in venv: $PY_VERSION (expected 3.12.8)"
+if [[ "$PY_VERSION" != "3.8.10" ]]; then
+  echo "Unexpected Python version in venv: $PY_VERSION (expected 3.8.10)"
   exit 1
 fi
 
@@ -33,11 +33,11 @@ uv pip install --python "$VENV_PY" -r "$REQ_PATH"
 
 echo "==> Registering Jupyter kernel..."
 uv pip install --python "$VENV_PY" ipykernel
-"$VENV_PY" -m ipykernel install --user --name py312-exam --display-name "Python 3.12 (exam-env)"
+"$VENV_PY" -m ipykernel install --user --name py38-exam --display-name "Python 3.8 (exam-env)"
 
 cat <<'EOF'
 
 Environment ready.
-Activate with: source .venv312/bin/activate
+Activate with: source .venv38/bin/activate
 Start Jupyter with: ./launch-jupyter-macos.command
 EOF

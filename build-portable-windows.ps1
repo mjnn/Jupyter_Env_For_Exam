@@ -17,16 +17,16 @@ function Copy-PythonTree {
 }
 
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
-$BundleName = "JupyterExam-Portable-win64"
+$BundleName = "JupyterExam-Portable-py38-win64"
 $DistRoot = Join-Path $ProjectRoot "dist\$BundleName"
 $RuntimeDir = Join-Path $DistRoot "runtime"
 $PythonDir = Join-Path $RuntimeDir "python"
 $NotebooksDir = Join-Path $RuntimeDir "notebooks"
-$ReqFile = Join-Path $ProjectRoot "requirements-py312.txt"
+$ReqFile = Join-Path $ProjectRoot "requirements-py38.txt"
 $WheelDir = Join-Path $ProjectRoot "offline-windows\wheels"
-$OfflineInstaller = Join-Path $ProjectRoot "offline-windows\python-3.12.8-amd64.exe"
+$OfflineInstaller = Join-Path $ProjectRoot "offline-windows\python-3.8.10-amd64.exe"
 $TmpInstaller = Join-Path $ProjectRoot "dist\_tmp_python_installer.exe"
-$InstallerUrl = "https://www.python.org/ftp/python/3.12.8/python-3.12.8-amd64.exe"
+$InstallerUrl = "https://www.python.org/ftp/python/3.8.10/python-3.8.10-amd64.exe"
 $ZipOut = Join-Path $ProjectRoot "dist\$BundleName.zip"
 
 if (-not (Test-Path $ReqFile)) {
@@ -45,7 +45,7 @@ if (Test-Path $OfflineInstaller) {
     Write-Host "==> Using cached installer: $Installer"
 }
 else {
-    Write-Host "==> Downloading Python 3.12.8 installer..."
+    Write-Host "==> Downloading Python 3.8.10 installer..."
     New-Item -ItemType Directory -Force -Path (Split-Path $TmpInstaller) | Out-Null
     Invoke-WebRequest -Uri $InstallerUrl -OutFile $TmpInstaller
     $Installer = $TmpInstaller
@@ -70,14 +70,14 @@ $null = Start-Process -FilePath $Installer -ArgumentList $installArgs -Wait -Pas
 
 $PyExe = Join-Path $PythonDir "python.exe"
 if (-not (Test-Path $PyExe)) {
-    Write-Host "    Silent install did not populate TargetDir (common if Python 3.12 is already registered). Falling back to copying an existing 3.12.8 tree..."
+    Write-Host "    Silent install did not populate TargetDir (common if Python 3.8 is already registered). Falling back to copying an existing 3.8.10 tree..."
     if (Test-Path $PythonDir) { Remove-Item -Recurse -Force $PythonDir }
 
     $candidates = @()
-    if ($env:PREBUILT_PYTHON312) { $candidates += $env:PREBUILT_PYTHON312.TrimEnd('\') }
-    $candidates += "D:\python3.12.8"
-    $candidates += (Join-Path $env:LocalAppData "Programs\Python\Python312")
-    $candidates += (Join-Path $ProjectRoot "python312")
+    if ($env:PREBUILT_PYTHON38) { $candidates += $env:PREBUILT_PYTHON38.TrimEnd('\') }
+    $candidates += "D:\python3.8.10"
+    $candidates += (Join-Path $env:LocalAppData "Programs\Python\Python38")
+    $candidates += (Join-Path $ProjectRoot "python38")
 
     $copied = $false
     foreach ($src in $candidates) {
@@ -86,29 +86,29 @@ if (-not (Test-Path $PyExe)) {
             Write-Host "    Trying copy from: $src"
             if (Copy-PythonTree -Source $src -Destination $PythonDir) {
                 $ver = & (Join-Path $PythonDir "python.exe") -c "import platform; print(platform.python_version())"
-                if ($ver -eq "3.12.8") {
+                if ($ver -eq "3.8.10") {
                     $copied = $true
                     break
                 }
-                Write-Host "    Skipping (version $ver, need 3.12.8)"
+                Write-Host "    Skipping (version $ver, need 3.8.10)"
                 Remove-Item -Recurse -Force $PythonDir -ErrorAction SilentlyContinue
             }
         }
     }
     if (-not $copied) {
         throw @"
-Could not place Python 3.12.8 into the bundle.
+Could not place Python 3.8.10 into the bundle.
 - On a clean PC, silent install should work.
-- On a PC that already has Python 3.12, set PREBUILT_PYTHON312 to a folder that contains python.exe (3.12.8), e.g.:
-  `$env:PREBUILT_PYTHON312='D:\python3.12.8'; .\build-portable-windows.ps1`
+- On a PC that already has Python 3.8, set PREBUILT_PYTHON38 to a folder that contains python.exe (3.8.10), e.g.:
+  `$env:PREBUILT_PYTHON38='D:\python3.8.10'; .\build-portable-windows.ps1`
 "@
     }
 }
 
 $PyExe = Join-Path $PythonDir "python.exe"
 $pyVersion = & $PyExe -c "import platform; print(platform.python_version())"
-if ($pyVersion -ne "3.12.8") {
-    throw "Unexpected Python version in bundle: $pyVersion (expected 3.12.8)"
+if ($pyVersion -ne "3.8.10") {
+    throw "Unexpected Python version in bundle: $pyVersion (expected 3.8.10)"
 }
 
 Write-Host "==> Installing pinned dependencies into portable python..."
@@ -159,8 +159,8 @@ if not defined VER (
   pause
   exit /b 1
 )
-if not "%VER%"=="3.12.8" (
-  echo ERROR: Wrong Python version: %VER% expected 3.12.8
+if not "%VER%"=="3.8.10" (
+  echo ERROR: Wrong Python version: %VER% expected 3.8.10
   pause
   exit /b 1
 )
@@ -184,7 +184,7 @@ endlocal
 Set-Content -LiteralPath (Join-Path $DistRoot "SELFTEST.bat") -Value $selfCheckBat -Encoding Ascii
 
 $readme = @"
-Jupyter Exam - Windows portable bundle
+Jupyter Exam - Windows portable bundle (Python 3.8.10)
 
 How to use
 1. Extract this folder anywhere (avoid non-ASCII paths if possible).
@@ -192,7 +192,7 @@ How to use
 3. Put your .ipynb files in runtime\notebooks (default notebook dir).
 
 Notes
-- Python 3.12.8 and libraries are bundled; you do not need a system Python.
+- Python 3.8.10 and libraries are bundled; you do not need a system Python.
 - If startup fails, run SELFTEST.bat and read the error.
 - Do not delete or rename the runtime folder.
 

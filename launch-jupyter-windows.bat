@@ -1,7 +1,7 @@
 @echo off
 setlocal
 set "ROOT=%~dp0"
-set "PY=%ROOT%.venv312\Scripts\python.exe"
+set "PY=%ROOT%.venv38\Scripts\python.exe"
 set "PYTHONHOME="
 set "PYTHONPATH="
 set "PYTHONNOUSERSITE=1"
@@ -22,8 +22,8 @@ if not exist "%VFILE%" (
 set "VER="
 for /f "usebackq delims=" %%a in ("%VFILE%") do set "VER=%%a"
 del "%VFILE%" >nul 2>&1
-if not "%VER%"=="3.12.8" (
-  echo Python version mismatch in .venv312: %VER%
+if not "%VER%"=="3.8.10" (
+  echo Python version mismatch in .venv38: %VER%
   pause
   exit /b 1
 )

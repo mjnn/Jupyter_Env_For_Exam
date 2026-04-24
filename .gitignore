@@ -1,6 +1,8 @@
 # Virtual envs / local Python copies
 .venv312/
+.venv38/
 python312/
+python38/
 
 # Portable + CI build outputs
 dist/
@@ -9,9 +11,11 @@ dist/
 offline-windows/wheels/
 offline-windows/.build-venv/
 offline-windows/python-3.12.8-amd64.exe
+offline-windows/python-3.8.10-amd64.exe
 offline-macos/wheels/
 offline-macos/.build-venv/
 offline-macos/python-3.12.8-macos11.pkg
+offline-macos/python-3.8.10-macos11.pkg
 
 # Python
 __pycache__/

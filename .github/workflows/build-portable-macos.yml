@@ -32,17 +32,21 @@ jobs:
       - name: Smoke test tarball (extract + imports + notebook HTTP)
         run: |
           set -euo pipefail
-          TGZ="dist/JupyterExam-Portable-mac-arm64.tar.gz"
+          TGZ="dist/JupyterExam-Portable-py38-mac-arm64.tar.gz"
           test -f "$TGZ"
           EXTRACT="/tmp/jp-smoke-$$"
           rm -rf "$EXTRACT"
           mkdir -p "$EXTRACT"
           tar -xzf "$TGZ" -C "$EXTRACT"
-          ROOT="$EXTRACT/JupyterExam-Portable-mac-arm64"
+          ROOT="$EXTRACT/JupyterExam-Portable-py38-mac-arm64"
           test -d "$ROOT"
-          PY="$ROOT/runtime/python/bin/python3.12"
+          PY=""
+          for cand in "$ROOT/runtime/python/bin/python3.8" "$ROOT/runtime/python/bin/python3"; do
+            if [[ -x "$cand" ]]; then PY="$cand"; break; fi
+          done
+          test -n "$PY"
           test -x "$PY"
-          "$PY" -E -s -c "import platform; v=platform.python_version(); assert v=='3.12.8', v"
+          "$PY" -E -s -c "import platform; v=platform.python_version(); assert v=='3.8.10', v"
           "$PY" -E -s -c "import jupyter, notebook, numpy, pandas, matplotlib, sklearn, seaborn, PIL, cv2, xgboost, onnx, onnxruntime, openpyxl, xlrd, joblib, scipy, imblearn"
           test -f "$ROOT/START-Jupyter.command"
           test -x "$ROOT/START-Jupyter.command"
@@ -81,6 +85,6 @@ jobs:
       - name: Upload tarball artifact
         uses: actions/upload-artifact@v4
         with:
-          name: JupyterExam-Portable-mac-arm64
-          path: dist/JupyterExam-Portable-mac-arm64.tar.gz
+          name: JupyterExam-Portable-py38-mac-arm64
+          path: dist/JupyterExam-Portable-py38-mac-arm64.tar.gz
           if-no-files-found: error

@@ -12,12 +12,12 @@ else {
 }
 
 $WheelDir = Join-Path $OfflineRoot "wheels"
-$PyInstaller = Join-Path $OfflineRoot "python-3.12.8-amd64.exe"
-$PythonHome = Join-Path $ProjectRoot "python312"
-$VenvPath = Join-Path $ProjectRoot ".venv312"
-$ReqPath = Join-Path $ProjectRoot "requirements-py312.txt"
+$PyInstaller = Join-Path $OfflineRoot "python-3.8.10-amd64.exe"
+$PythonHome = Join-Path $ProjectRoot "python38"
+$VenvPath = Join-Path $ProjectRoot ".venv38"
+$ReqPath = Join-Path $ProjectRoot "requirements-py38.txt"
 if (-not (Test-Path $ReqPath)) {
-    $ReqPath = Join-Path $OfflineRoot "requirements-py312.txt"
+    $ReqPath = Join-Path $OfflineRoot "requirements-py38.txt"
 }
 
 if (-not (Test-Path $PyInstaller)) {
@@ -36,7 +36,7 @@ $env:PIP_DISABLE_PIP_VERSION_CHECK = "1"
 Remove-Item Env:PIP_INDEX_URL -ErrorAction SilentlyContinue
 Remove-Item Env:PIP_EXTRA_INDEX_URL -ErrorAction SilentlyContinue
 
-Write-Host "==> Installing Python 3.12.8 locally..."
+Write-Host "==> Installing Python 3.8.10 locally..."
 $installArgs = @(
     "/quiet",
     "InstallAllUsers=0",
@@ -54,8 +54,8 @@ if ($exitCode -ne 0 -and $exitCode -ne 3010) {
 $PythonExe = $null
 $candidates = @(
     (Join-Path $PythonHome "python.exe"),
-    (Join-Path $env:LocalAppData "Programs\Python\Python312\python.exe"),
-    (Join-Path $env:LocalAppData "Programs\Python\Python312-32\python.exe")
+    (Join-Path $env:LocalAppData "Programs\Python\Python38\python.exe"),
+    (Join-Path $env:LocalAppData "Programs\Python\Python38-32\python.exe")
 )
 foreach ($candidate in $candidates) {
     if (Test-Path $candidate) {
@@ -65,7 +65,7 @@ foreach ($candidate in $candidates) {
 }
 if (-not $PythonExe -and (Get-Command py -ErrorAction SilentlyContinue)) {
     try {
-        $pyPath = & py -3.12 -c "import sys; print(sys.executable)"
+        $pyPath = & py -3.8 -c "import sys; print(sys.executable)"
         if ($pyPath -and (Test-Path $pyPath)) {
             $PythonExe = $pyPath
         }
@@ -90,7 +90,7 @@ $pipBase = @("-m", "pip", "install", "--isolated", "--no-index", "--find-links",
 & $VenvPython @pipBase ipykernel
 
 Write-Host "==> Registering Jupyter kernel..."
-& $VenvPython -m ipykernel install --user --name py312-exam --display-name "Python 3.12 (exam-env)"
+& $VenvPython -m ipykernel install --user --name py38-exam --display-name "Python 3.8 (exam-env)"
 
 Write-Host ""
 Write-Host "Offline install complete."

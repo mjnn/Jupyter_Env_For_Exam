@@ -13,8 +13,8 @@ else {
 
 $WheelDir = Join-Path $OfflineRoot "wheels"
 $BuildVenv = Join-Path $OfflineRoot ".build-venv"
-$ReqPath = Join-Path $ProjectRoot "requirements-py312.txt"
-$PythonInstaller = Join-Path $OfflineRoot "python-3.12.8-amd64.exe"
+$ReqPath = Join-Path $ProjectRoot "requirements-py38.txt"
+$PythonInstaller = Join-Path $OfflineRoot "python-3.8.10-amd64.exe"
 
 if (-not (Test-Path $ReqPath)) {
     throw "Requirements file not found: $ReqPath"
@@ -37,8 +37,8 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
     throw "uv install failed. Please restart PowerShell and run this script again."
 }
 
-Write-Host "==> Creating build venv (Python 3.12.8)..."
-uv venv --python 3.12.8 $BuildVenv
+Write-Host "==> Creating build venv (Python 3.8.10)..."
+uv venv --python 3.8.10 $BuildVenv
 $BuildPython = Join-Path $BuildVenv "Scripts\python.exe"
 
 Write-Host "==> Ensuring pip is available in build venv..."
@@ -52,12 +52,12 @@ Write-Host "==> Downloading wheels for offline install..."
 Write-Host "==> Downloading pip / setuptools (for zero-network target upgrade)..."
 & $BuildPython -m pip download pip setuptools -d $WheelDir
 
-Write-Host "==> Downloading Python 3.12.8 installer..."
-$PyUrl = "https://www.python.org/ftp/python/3.12.8/python-3.12.8-amd64.exe"
+Write-Host "==> Downloading Python 3.8.10 installer..."
+$PyUrl = "https://www.python.org/ftp/python/3.8.10/python-3.8.10-amd64.exe"
 Invoke-WebRequest -Uri $PyUrl -OutFile $PythonInstaller
 
 Write-Host "==> Copying required files into offline bundle..."
-Copy-Item -Path $ReqPath -Destination (Join-Path $OfflineRoot "requirements-py312.txt") -Force
+Copy-Item -Path $ReqPath -Destination (Join-Path $OfflineRoot "requirements-py38.txt") -Force
 $InstallScript = Join-Path $ProjectRoot "install-offline-windows.ps1"
 if (Test-Path $InstallScript) {
     Copy-Item -Path $InstallScript -Destination (Join-Path $OfflineRoot "install-offline-windows.ps1") -Force

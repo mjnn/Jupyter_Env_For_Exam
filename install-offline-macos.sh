@@ -10,12 +10,12 @@ else
   OFFLINE_ROOT="$PROJECT_ROOT/offline-macos"
 fi
 WHEEL_DIR="$OFFLINE_ROOT/wheels"
-PY_PKG="$OFFLINE_ROOT/python-3.12.8-macos11.pkg"
-PY_BIN="/Library/Frameworks/Python.framework/Versions/3.12/bin/python3.12"
-VENV_PATH="$PROJECT_ROOT/.venv312"
-REQ_PATH="$PROJECT_ROOT/requirements-py312.txt"
+PY_PKG="$OFFLINE_ROOT/python-3.8.10-macos11.pkg"
+PY_BIN="/Library/Frameworks/Python.framework/Versions/3.8/bin/python3.8"
+VENV_PATH="$PROJECT_ROOT/.venv38"
+REQ_PATH="$PROJECT_ROOT/requirements-py38.txt"
 if [[ ! -f "$REQ_PATH" ]]; then
-  REQ_PATH="$OFFLINE_ROOT/requirements-py312.txt"
+  REQ_PATH="$OFFLINE_ROOT/requirements-py38.txt"
 fi
 
 if [[ ! -f "$PY_PKG" ]]; then
@@ -35,7 +35,7 @@ export PIP_NO_INDEX=1
 export PIP_DISABLE_PIP_VERSION_CHECK=1
 unset PIP_INDEX_URL PIP_EXTRA_INDEX_URL 2>/dev/null || true
 
-echo "==> Installing Python 3.12.8 (requires sudo)..."
+echo "==> Installing Python 3.8.10 (requires sudo)..."
 sudo installer -pkg "$PY_PKG" -target /
 
 if [[ ! -x "$PY_BIN" ]]; then
@@ -53,7 +53,7 @@ echo "==> Installing dependencies from offline wheels (no network)..."
 "$VENV_PY" -m pip install --isolated --no-index --find-links "$WHEEL_DIR" ipykernel
 
 echo "==> Registering Jupyter kernel..."
-"$VENV_PY" -m ipykernel install --user --name py312-exam --display-name "Python 3.12 (exam-env)"
+"$VENV_PY" -m ipykernel install --user --name py38-exam --display-name "Python 3.8 (exam-env)"
 
 echo
 echo "Offline install complete."

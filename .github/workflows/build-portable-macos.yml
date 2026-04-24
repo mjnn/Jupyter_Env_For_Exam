@@ -28,8 +28,8 @@ jobs:
       - name: List dist
         run: ls -la dist/
 
-      # Same runner as build: proves the shipped tarball extracts and key imports work (no local Mac needed).
-      - name: Smoke test tarball (extract + Python imports)
+      # Same runner as build: extract tarball, import stack, briefly start Notebook and hit HTTP (no local Mac needed).
+      - name: Smoke test tarball (extract + imports + notebook HTTP)
         run: |
           set -euo pipefail
           TGZ="dist/JupyterExam-Portable-mac-arm64.tar.gz"
@@ -46,7 +46,37 @@ jobs:
           "$PY" -E -s -c "import jupyter, notebook, numpy, pandas, matplotlib, sklearn, seaborn, PIL, cv2, xgboost, onnx, onnxruntime, openpyxl, xlrd, joblib, scipy, imblearn"
           test -f "$ROOT/START-Jupyter.command"
           test -x "$ROOT/START-Jupyter.command"
-          echo "Smoke test OK: extracted bundle imports and launchers present."
+
+          PORT=19999
+          NBLOG="/tmp/jp-nb-smoke.log"
+          rm -f "$NBLOG"
+          # CI-only: disable token so curl can probe; student bundles still use normal START-Jupyter.command.
+          nohup "$PY" -E -s -m notebook --no-browser --port="$PORT" \
+            --notebook-dir="$ROOT/runtime/notebooks" \
+            --ServerApp.ip=127.0.0.1 \
+            --ServerApp.token='' \
+            --ServerApp.password='' \
+            >"$NBLOG" 2>&1 &
+          JNPID=$!
+
+          READY=0
+          for _ in $(seq 1 45); do
+            code=$(curl -sS -o /dev/null -w "%{http_code}" "http://127.0.0.1:${PORT}/tree" 2>/dev/null || echo 000)
+            if [[ "$code" == "200" || "$code" == "302" || "$code" == "301" ]]; then READY=1; break; fi
+            code2=$(curl -sS -o /dev/null -w "%{http_code}" "http://127.0.0.1:${PORT}/" 2>/dev/null || echo 000)
+            if [[ "$code2" == "200" || "$code2" == "302" || "$code2" == "301" ]]; then READY=1; break; fi
+            sleep 2
+          done
+
+          kill "$JNPID" 2>/dev/null || true
+          wait "$JNPID" 2>/dev/null || true
+
+          if [[ "$READY" != "1" ]]; then
+            echo "Notebook HTTP probe failed (expected 200/301/302 on /tree or /)."
+            tail -n 120 "$NBLOG" || true
+            exit 1
+          fi
+          echo "Smoke test OK: imports + Notebook HTTP on port ${PORT}."
 
       - name: Upload tarball artifact
         uses: actions/upload-artifact@v4

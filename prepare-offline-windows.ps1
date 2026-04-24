@@ -37,20 +37,56 @@ if (-not (Get-Command uv -ErrorAction SilentlyContinue)) {
     throw "uv install failed. Please restart PowerShell and run this script again."
 }
 
+# Online prepare: must not use no-index / mirror-only config from the host (pip.ini, env vars).
+$env:PIP_DISABLE_PIP_VERSION_CHECK = "1"
+Remove-Item Env:PIP_NO_INDEX -ErrorAction SilentlyContinue
+Remove-Item Env:PIP_INDEX_URL -ErrorAction SilentlyContinue
+Remove-Item Env:PIP_EXTRA_INDEX_URL -ErrorAction SilentlyContinue
+# Broken or stale proxy env vars cause pip to fail with ProxyError even when using PyPI directly.
+foreach ($k in @("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "http_proxy", "https_proxy", "all_proxy")) {
+    Remove-Item "Env:$k" -ErrorAction SilentlyContinue
+}
+# Bypass WinHTTP / IE auto-proxy for PyPI (broken PAC/proxy otherwise breaks pip on some Windows setups).
+$env:NO_PROXY = "*"
+$env:no_proxy = "*"
+
+# pip global options must follow `pip` (not sit between `python -m` and `pip`).
+function Invoke-PipDownload {
+    param(
+        [Parameter(Mandatory = $true)][string]$PythonExe,
+        [Parameter(Mandatory = $true)][string[]]$ExtraArgs
+    )
+    $env:NO_PROXY = "*"
+    $env:no_proxy = "*"
+    $pipArgs = @(
+        "-m", "pip", "download",
+        "--isolated",
+        "-i", "https://pypi.org/simple",
+        "--trusted-host", "pypi.org",
+        "--trusted-host", "files.pythonhosted.org"
+    ) + $ExtraArgs
+    & $PythonExe @pipArgs
+    if ($LASTEXITCODE -ne 0) {
+        throw "pip download failed (exit $LASTEXITCODE)."
+    }
+}
+
 Write-Host "==> Creating build venv (Python 3.8.10)..."
-uv venv --python 3.8.10 $BuildVenv
+uv venv --python 3.8.10 --clear $BuildVenv
 $BuildPython = Join-Path $BuildVenv "Scripts\python.exe"
 
-Write-Host "==> Ensuring pip is available in build venv..."
-& $BuildPython -m ensurepip --upgrade
-& $BuildPython -m pip install --upgrade pip
+Write-Host "==> Bootstrapping modern pip (uv, avoids host pip.ini / old pip TLS issues)..."
+uv pip install --python $BuildPython pip setuptools wheel
 
 Write-Host "==> Downloading wheels for offline install..."
-& $BuildPython -m pip download --only-binary=:all: -r $ReqPath -d $WheelDir
-& $BuildPython -m pip download --only-binary=:all: ipykernel -d $WheelDir
+Invoke-PipDownload -PythonExe $BuildPython -ExtraArgs @(
+    "--only-binary=:all:", "-r", $ReqPath, "-d", $WheelDir
+)
 
 Write-Host "==> Downloading pip / setuptools (for zero-network target upgrade)..."
-& $BuildPython -m pip download pip setuptools -d $WheelDir
+Invoke-PipDownload -PythonExe $BuildPython -ExtraArgs @(
+    "pip", "setuptools", "-d", $WheelDir
+)
 
 Write-Host "==> Downloading Python 3.8.10 installer..."
 $PyUrl = "https://www.python.org/ftp/python/3.8.10/python-3.8.10-amd64.exe"

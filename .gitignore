@@ -10,6 +10,7 @@ dist/
 # Offline caches (large; regenerate with prepare-offline-*. scripts)
 offline-windows/wheels/
 offline-windows/.build-venv/
+offline-windows/requirements-py38.txt
 offline-windows/python-3.12.8-amd64.exe
 offline-windows/python-3.8.10-amd64.exe
 offline-macos/wheels/

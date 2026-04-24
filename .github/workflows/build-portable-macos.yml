@@ -28,6 +28,26 @@ jobs:
       - name: List dist
         run: ls -la dist/
 
+      # Same runner as build: proves the shipped tarball extracts and key imports work (no local Mac needed).
+      - name: Smoke test tarball (extract + Python imports)
+        run: |
+          set -euo pipefail
+          TGZ="dist/JupyterExam-Portable-mac-arm64.tar.gz"
+          test -f "$TGZ"
+          EXTRACT="/tmp/jp-smoke-$$"
+          rm -rf "$EXTRACT"
+          mkdir -p "$EXTRACT"
+          tar -xzf "$TGZ" -C "$EXTRACT"
+          ROOT="$EXTRACT/JupyterExam-Portable-mac-arm64"
+          test -d "$ROOT"
+          PY="$ROOT/runtime/python/bin/python3.12"
+          test -x "$PY"
+          "$PY" -E -s -c "import platform; v=platform.python_version(); assert v=='3.12.8', v"
+          "$PY" -E -s -c "import jupyter, notebook, numpy, pandas, matplotlib, sklearn, seaborn, PIL, cv2, xgboost, onnx, onnxruntime, openpyxl, xlrd, joblib, scipy, imblearn"
+          test -f "$ROOT/START-Jupyter.command"
+          test -x "$ROOT/START-Jupyter.command"
+          echo "Smoke test OK: extracted bundle imports and launchers present."
+
       - name: Upload tarball artifact
         uses: actions/upload-artifact@v4
         with:

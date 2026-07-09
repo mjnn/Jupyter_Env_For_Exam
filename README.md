@@ -1,198 +1,308 @@
 # Jupyter Exam Environment (Python 3.8.10)
 
-This project sets up a Jupyter Notebook environment on machines that do not have Python preinstalled (Windows and macOS).
+**一键部署、完全隔离的 Jupyter Notebook 考试/教学环境** — 面向没有预装 Python 的 Windows 与 macOS 机器，支持在线安装、离线安装、以及学生端零配置便携包。
 
-It uses `uv` to automatically install Python `3.8.10`, create a virtual environment, and install pinned package versions.
+> **English summary:** A reproducible, isolated Jupyter Notebook stack pinned to **Python 3.8.10** for exam rooms and classrooms. Teachers build once; students double-click to start. Works online, fully offline, and as a self-contained portable bundle.
 
-## Package Versions
+---
 
-See `requirements-py38.txt`.
+## 一眼看懂
 
-`pywinpty` is listed with a Windows-only environment marker so macOS `pip` does not try to install it.
+| 你是谁 | 你要做什么 | 怎么做 |
+|--------|-----------|--------|
+| **学生** | 打开 Jupyter 做题 | 解压老师发的便携包 → 双击 `START-Jupyter.bat`（Win）或 `START-Jupyter.command`（Mac） |
+| **老师（有网）** | 在本机搭开发环境 | 见下方 [开发环境快速开始](#开发环境快速开始) |
+| **老师（考场无网）** | 制作离线安装包或便携包 | 有网机器上 `prepare-offline-*` → 拷贝到考场 → `install-offline-*` 或发便携包 |
+| **老师（没有 Mac）** | 构建 macOS 便携包 | GitHub Actions → **Build portable macOS bundle** → 下载 artifact |
 
-## Portable bundle (English-only; zero setup for students)
+### 核心特性
 
-After extraction, students double-click **`START-Jupyter.bat`** (Windows) or **`START-Jupyter.command`** (macOS). All runtime files live under **`runtime/`**. Read **`README.txt`** in the bundle.
+- **Python 3.8.10 锁定** — 启动前强制校验版本，避免环境漂移
+- **环境完全隔离** — 使用项目内 `.venv38` / `runtime/python`，忽略系统 Python、`PYTHONPATH`、`PYTHONHOME`
+- **依赖版本锁定** — 数据科学 + 机器学习全家桶（pandas、sklearn、xgboost、opencv、onnx 等）
+- **双 Windows 产品线** — Win10/11 主线 + Win7 兼容旧版栈
+- **真正离线** — `pip` 全程 `--no-index`，不访问 PyPI
+- **便携包零配置** — 解压即用，适合 U 盘分发
+- **CI 冒烟测试** — macOS 便携包构建后自动验证导入与 HTTP 探活
 
-### Build on Windows (teacher machine, PowerShell)
+### 支持平台
 
-1. (Recommended) `.\prepare-offline-windows.ps1`  
-2. `Set-ExecutionPolicy -Scope Process Bypass; .\build-portable-windows.ps1`  
+| 平台 | 开发环境 | 便携包 | 离线安装 |
+|------|---------|--------|---------|
+| Windows 10/11 | ✅ | ✅ `win10plus` | ✅ |
+| Windows 7（尽力兼容） | ✅ | ✅ `win7-legacy` | ✅ |
+| macOS arm64 | ✅ | ✅ | ✅ |
+| macOS x86_64 | ✅ | ✅（需 Intel Mac 本地构建） | ✅ |
 
-Outputs: `dist\JupyterExam-Portable-py38-win64\`, `dist\JupyterExam-Portable-py38-win64.zip`.
+### 预装包（Win10+/11 主线）
 
-If Python 3.8 is already registered on the build PC, the installer may skip; the script then copies an existing **3.8.10** tree. Override with:
+`requirements-py38-win10plus.txt` — Jupyter 7 + 常用数据科学与 ML 库：
+
+`notebook` · `pandas` · `numpy` · `matplotlib` · `seaborn` · `scikit-learn` · `imbalanced-learn` · `xgboost` · `opencv-python` · `onnx` / `onnxruntime` · `openpyxl` · `xlrd` · 等
+
+Win7 旧版栈见 `requirements-py38-win7-legacy.txt`（Notebook 6、较旧的 numpy/sklearn 等）。
+
+---
+
+## 工作流程
+
+```mermaid
+flowchart LR
+    subgraph teacher ["老师（有网机器）"]
+        P["prepare-offline-*\n下载 wheels"]
+        B["build-portable-*\n打包便携版"]
+        D["bootstrap-*\n本地开发环境"]
+    end
+
+    subgraph deliver ["分发"]
+        ZIP["便携包 .7z / .zip / .tar.gz"]
+        OFF["离线目录 offline-*"]
+    end
+
+    subgraph student ["学生（考场/教室）"]
+        S1["双击 START-Jupyter"]
+        S2["install-offline-*\n+ launch-jupyter-*"]
+    end
+
+    P --> B
+    P --> OFF
+    B --> ZIP
+    D --> S2
+    ZIP --> S1
+    OFF --> S2
+```
+
+---
+
+## 项目结构
+
+```
+Jupyter_Env_For_Exam/
+├── bootstrap-windows.ps1 / bootstrap-macos.sh     # 在线：创建 .venv38 开发环境
+├── launch-jupyter-windows.bat                   # 启动 Jupyter（推荐入口）
+├── launch-jupyter-macos.command
+├── prepare-offline-windows.ps1                  # 在线：下载离线 wheels
+├── prepare-offline-macos.sh
+├── install-offline-windows.ps1                  # 离线：从 wheels 安装
+├── install-offline-macos.sh
+├── build-portable-windows.ps1                   # 打包 Windows 便携版
+├── build-portable-macos.sh
+├── verify-env-windows.ps1 / verify-env-macos.sh # 校验 Python 版本与依赖
+├── requirements-py38-win10plus.txt              # Win10/11 依赖清单
+├── requirements-py38-win7-legacy.txt            # Win7 兼容依赖清单
+├── requirements-py38.txt                        # macOS / 通用开发环境
+├── offline-windows/                             # Windows 离线缓存（git 忽略 wheels）
+├── offline-macos/                               # macOS 离线缓存
+├── dist/                                        # 便携包输出（git 忽略）
+└── .github/workflows/build-portable-macos.yml   # 无 Mac 时 CI 构建
+```
+
+便携包内学生看到的结构：
+
+```
+JupyterExam-Portable-py38-*/
+├── START-Jupyter.bat / START-Jupyter.command   # 学生入口
+├── README.txt                                   # 英文简要说明
+└── runtime/
+    ├── python/          # 内置 Python 3.8.10
+    ├── notebooks/       # 默认工作目录
+    └── ...
+```
+
+---
+
+## 开发环境快速开始
+
+适合老师在开发机上调试 notebook，使用 [`uv`](https://github.com/astral-sh/uv) 自动安装 Python 3.8.10。
+
+### Windows
+
+```powershell
+Set-ExecutionPolicy -Scope Process Bypass
+.\bootstrap-windows.ps1
+.\launch-jupyter-windows.bat
+```
+
+### macOS
+
+```bash
+chmod +x bootstrap-macos.sh launch-jupyter-macos.command
+./bootstrap-macos.sh
+./launch-jupyter-macos.command
+```
+
+启动后浏览器自动打开 Jupyter；日志写入 `logs/launcher.log` 与 `logs/jupyter.log`。
+
+---
+
+## 便携包（学生零配置）
+
+解压后双击启动，无需安装 Python。所有运行时文件在 `runtime/` 下。
+
+### Windows 构建（老师机器，PowerShell）
+
+**Win10/11 主线：**
+
+```powershell
+.\prepare-offline-windows.ps1 -Profile win10plus
+Set-ExecutionPolicy -Scope Process Bypass; .\build-portable-windows.ps1 -Profile win10plus
+```
+
+输出：`dist\JupyterExam-Portable-py38-win10plus\`，有 [7-Zip](https://www.7-zip.org/) 时额外生成 `.7z`（否则 `.zip`）。
+
+**Win7 兼容线：**
+
+```powershell
+.\prepare-offline-windows.ps1 -Profile win7-legacy
+Set-ExecutionPolicy -Scope Process Bypass; .\build-portable-windows.ps1 -Profile win7-legacy
+```
+
+若本机已注册 Python 3.8，安装器可能跳过；脚本会复制已有 **3.8.10** 目录。可手动指定：
 
 ```powershell
 $env:PREBUILT_PYTHON38 = 'D:\path\to\python38root'
 .\build-portable-windows.ps1
 ```
 
-The source folder must contain `python.exe` and be version **3.8.10**.
+### macOS 构建（需真实 Mac）
 
-### Build on macOS (teacher machine; run on a real Mac)
-
-1. (Recommended) `chmod +x prepare-offline-macos.sh && ./prepare-offline-macos.sh`  
-2. `chmod +x build-portable-macos.sh && ./build-portable-macos.sh`  
-
-Build **arm64** and **x86_64** bundles on matching Macs. The portable script uses **`uv python install 3.8.10`** to fetch a relocatable CPython, then copies it into `runtime/python`.
-
-### Build macOS bundle without a local Mac (GitHub Actions)
-
-Push this repo to GitHub, open **Actions → “Build portable macOS bundle” → Run workflow**.
-
-- Default: builds on **`macos-latest`** (Apple Silicon) and uploads **`JupyterExam-Portable-py38-mac-arm64.tar.gz`** as an artifact (installs deps from PyPI unless you enabled the optional prepare step).
-- Optional checkbox **Run prepare-offline-macos.sh first**: slower, but matches an air-gapped wheel layout like your offline `offline-macos/wheels` workflow.
-- **Intel (x86_64)** bundles are not produced on free GitHub runners today; build those on an Intel Mac or a paid macOS x86 runner.
-
-Workflow file: `.github/workflows/build-portable-macos.yml`.
-
-### Students (offline machines)
-
-- **Windows**: Unzip, run **`START-Jupyter.bat`**. Notebooks default to **`runtime\notebooks`**. Optional: **`SELFTEST.bat`**.  
-- **macOS**: Extract tarball, run **`START-Jupyter.command`**. If blocked: **System Settings → Privacy & Security → Open Anyway**. Optional: **`SELFTEST.command`**.
-
-## Windows Setup
-
-Open PowerShell in this folder and run:
-
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\bootstrap-windows.ps1
+```bash
+chmod +x prepare-offline-macos.sh build-portable-macos.sh
+./prepare-offline-macos.sh    # 推荐：预下载 wheels
+./build-portable-macos.sh
 ```
 
-Start Jupyter (isolated launch, recommended):
+分别在 **arm64** 与 **x86_64** Mac 上构建对应架构包。
+
+### 无 Mac：GitHub Actions 构建
+
+推送本仓库后，打开 **Actions → "Build portable macOS bundle" → Run workflow**。
+
+- 默认在 `macos-latest`（Apple Silicon）构建，上传 `JupyterExam-Portable-py38-mac-arm64.tar.gz` artifact
+- 可选勾选 **Run prepare-offline-macos.sh first**（更慢，但匹配完全离线 wheel 布局）
+- Intel (x86_64) 包需 Intel Mac 或付费 x86 runner 本地构建
+
+### 学生使用（离线机器）
+
+| 包类型 | 操作 |
+|--------|------|
+| Windows win10plus | 解压 → `START-Jupyter.bat`（启动时校验 Win10/11） |
+| Windows win7-legacy | 解压 → `START-Jupyter.bat`（Win7 尽力兼容） |
+| macOS | 解压 → `START-Jupyter.command`；若被拦截：**系统设置 → 隐私与安全性 → 仍要打开** |
+
+可选自检：`SELFTEST.bat` / `SELFTEST.command`。
+
+---
+
+## 离线安装（目标机器完全无网）
+
+**原则：** 在有网的、与目标机 **同 OS + 同 CPU 架构** 的机器上运行 `prepare-offline-*`，再整包拷贝。
+
+离线脚本保证 **pip 绝不联网**：
+
+- `PIP_NO_INDEX=1`，每次 `pip install` 使用 `--no-index --find-links …/wheels`
+- `--isolated` 忽略用户全局 `pip.ini`
+- wheels 中包含 `pip` 与 `setuptools`，目标机升级 pip 也不需 PyPI
+
+### Windows 离线
 
 ```powershell
+# 1) 有网机器
+Set-ExecutionPolicy -Scope Process Bypass
+.\prepare-offline-windows.ps1 -Profile win10plus
+
+# 2) 拷贝整个项目（含 offline-windows）到离线机
+
+# 3) 离线机
+.\install-offline-windows.ps1 -Profile win10plus
 .\launch-jupyter-windows.bat
 ```
 
-Double-click launcher:
+`install-offline-windows.ps1` 可从项目根或 `offline-windows/` 内运行。
 
-- `launch-jupyter-windows.bat`
-
-## macOS Setup
-
-Open Terminal in this folder and run:
+### macOS 离线
 
 ```bash
-chmod +x bootstrap-macos.sh
-./bootstrap-macos.sh
-```
-
-Start Jupyter (isolated launch, recommended):
-
-```bash
-chmod +x launch-jupyter-macos.command
-./launch-jupyter-macos.command
-```
-
-Double-click launcher:
-
-- `chmod +x launch-jupyter-macos.command`
-- Open `launch-jupyter-macos.command`
-
-## Offline Setup (No Internet On Target Machine)
-
-Important: prepare offline bundles on a machine with internet, and on the same OS/CPU architecture as the target machine.
-
-### Zero-network target installs
-
-On the **offline target machine**, `install-offline-*.` scripts are written so **pip never uses the network**:
-
-- `PIP_NO_INDEX=1` (Windows: same env var) and every `pip install` uses `--no-index --find-links …/wheels`
-- `pip install` also uses `--isolated` so user/global `pip.ini` index URLs are ignored
-- The offline bundle includes wheels for **`pip` and `setuptools`** so upgrading pip on the target does not need PyPI
-
-Re-run `prepare-offline-windows.ps1` / `prepare-offline-macos.sh` once after this change so those wheels are present in `wheels/`.
-
-### Windows Offline
-
-1) On an online Windows machine:
-
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\prepare-offline-windows.ps1
-```
-
-2) Copy the whole project folder (including `offline-windows`) to the offline target machine.
-
-3) On the offline target machine:
-
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\install-offline-windows.ps1
-```
-
-You can run `install-offline-windows.ps1` either from project root or from inside `offline-windows`.
-
-4) Start Jupyter:
-
-```powershell
-.\launch-jupyter-windows.bat
-```
-
-### macOS Offline
-
-1) On an online macOS machine:
-
-```bash
+# 1) 有网机器
 chmod +x prepare-offline-macos.sh
 ./prepare-offline-macos.sh
-```
 
-2) Copy the whole project folder (including `offline-macos`) to the offline target machine.
+# 2) 拷贝整个项目（含 offline-macos）到离线机
 
-3) On the offline target machine:
-
-```bash
-chmod +x install-offline-macos.sh
+# 3) 离线机
+chmod +x install-offline-macos.sh launch-jupyter-macos.command
 ./install-offline-macos.sh
-```
-
-You can run `install-offline-macos.sh` either from project root or from inside `offline-macos`.
-
-4) Start Jupyter:
-
-```bash
-chmod +x launch-jupyter-macos.command
 ./launch-jupyter-macos.command
 ```
 
-## Isolation Guarantee
+---
 
-This setup is isolated from any Python already installed on the machine:
+## 环境隔离保证
 
-- Jupyter always starts with project-local interpreter: `.venv38`
-- launcher scripts verify interpreter version is exactly `3.8.10` before start
-- startup uses Python flags `-E -s` to ignore external Python env vars and user site-packages
-- launcher scripts clear `PYTHONHOME` and `PYTHONPATH` to prevent contamination from system config
+与机器上已有 Python **完全隔离**：
 
-Recommendation: always start with `launch-jupyter-windows.bat` or `launch-jupyter-macos.command` instead of plain `python -m notebook`.
+| 机制 | 说明 |
+|------|------|
+| 项目内解释器 | Jupyter 始终使用 `.venv38` 或便携包 `runtime/python` |
+| 版本门禁 | 启动前断言 Python **恰好 3.8.10** |
+| `-E -s` 标志 | 忽略外部 `PYTHON*` 环境变量与用户 site-packages |
+| 清空污染变量 | 启动脚本清除 `PYTHONHOME`、`PYTHONPATH` |
 
-## Optional: Use the Registered Kernel in Jupyter
+**务必**通过 `launch-jupyter-*.bat/.command` 或便携包 `START-Jupyter.*` 启动，不要直接 `python -m notebook`。
 
-Kernel name: `Python 3.8 (exam-env)`  
-Kernel id: `py38-exam`
+### Jupyter 内核（可选）
 
-## Environment Verification
+- 名称：`Python 3.8 (exam-env)`
+- ID：`py38-exam`
 
-Use these scripts to verify:
+---
 
-- Python version is exactly `3.8.10`
-- all pinned package versions match `requirements-py38.txt`
-- Jupyter kernel `py38-exam` is registered
+## 环境校验
 
-### Windows
+确认 Python 版本、依赖版本、内核注册是否正确：
 
 ```powershell
+# Windows
 Set-ExecutionPolicy -Scope Process Bypass
 .\verify-env-windows.ps1
 ```
 
-### macOS
-
 ```bash
+# macOS
 chmod +x verify-env-macos.sh
 ./verify-env-macos.sh
 ```
+
+---
+
+## 依赖配置文件说明
+
+| 文件 | 用途 |
+|------|------|
+| `requirements-py38-win10plus.txt` | Windows 10/11 便携包 & 离线 win10plus |
+| `requirements-py38-win7-legacy.txt` | Windows 7 兼容便携包 & 离线 win7-legacy |
+| `requirements-py38.txt` | macOS 开发环境 & macOS 便携包 |
+
+`pywinpty` 带 `sys_platform == "win32"` 标记，macOS 的 pip 不会尝试安装。
+
+---
+
+## 常见问题
+
+**Q: 学生双击后没反应？**  
+查看便携包或项目根目录下 `logs/launcher.log`，常见原因是杀毒软件拦截或 Python 目录被移动。
+
+**Q: macOS 提示「无法打开，因为无法验证开发者」？**  
+系统设置 → 隐私与安全性 → 仍要打开；或 `chmod +x START-Jupyter.command` 后右键打开。
+
+**Q: 考场 Windows 7 用什么包？**  
+使用 `win7-legacy` 产品线；Notebook 6 + 较旧依赖栈，属于尽力兼容。
+
+**Q: 如何确认环境没被系统 Python 污染？**  
+运行 `verify-env-*`，并始终用官方启动脚本而非系统 `python`。
+
+---
+
+## License
+
+See repository for license terms. Contributions and issue reports are welcome.

@@ -1,3 +1,8 @@
+param(
+    [ValidateSet("win10plus", "win7-legacy")]
+    [string]$Profile = "win10plus"
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
@@ -11,13 +16,14 @@ else {
     $OfflineRoot = Join-Path $ProjectRoot "offline-windows"
 }
 
-$WheelDir = Join-Path $OfflineRoot "wheels"
+$WheelDir = Join-Path $OfflineRoot "wheels-$Profile"
 $PyInstaller = Join-Path $OfflineRoot "python-3.8.10-amd64.exe"
 $PythonHome = Join-Path $ProjectRoot "python38"
 $VenvPath = Join-Path $ProjectRoot ".venv38"
-$ReqPath = Join-Path $ProjectRoot "requirements-py38.txt"
+$ReqFileName = if ($Profile -eq "win7-legacy") { "requirements-py38-win7-legacy.txt" } else { "requirements-py38-win10plus.txt" }
+$ReqPath = Join-Path $ProjectRoot $ReqFileName
 if (-not (Test-Path $ReqPath)) {
-    $ReqPath = Join-Path $OfflineRoot "requirements-py38.txt"
+    $ReqPath = Join-Path $OfflineRoot $ReqFileName
 }
 
 if (-not (Test-Path $PyInstaller)) {
@@ -27,7 +33,7 @@ if (-not (Test-Path $WheelDir)) {
     throw "Missing wheels folder: $WheelDir"
 }
 if (-not (Test-Path $ReqPath)) {
-    throw "Missing requirements file. Expected in project root or offline-windows."
+    throw "Missing requirements file. Expected '$ReqFileName' in project root or offline-windows."
 }
 
 # Target machine: never contact PyPI or any index (ignore user/global pip.ini too).
@@ -86,12 +92,15 @@ Write-Host "==> Installing dependencies from offline wheels (no network)..."
 $pipBase = @("-m", "pip", "install", "--isolated", "--no-index", "--find-links", $WheelDir)
 # pip/setuptools only: installing from .whl files does not require the "wheel" distribution on target.
 & $VenvPython @pipBase --upgrade pip setuptools
+if ($LASTEXITCODE -ne 0) { throw "pip bootstrap failed (exit $LASTEXITCODE)" }
 & $VenvPython @pipBase -r $ReqPath
-& $VenvPython @pipBase ipykernel
+if ($LASTEXITCODE -ne 0) { throw "pip install requirements failed (exit $LASTEXITCODE)" }
 
 Write-Host "==> Registering Jupyter kernel..."
-& $VenvPython -m ipykernel install --user --name py38-exam --display-name "Python 3.8 (exam-env)"
+$kernelName = if ($Profile -eq "win7-legacy") { "py38-win7-exam" } else { "py38-win10plus-exam" }
+$kernelDisplay = if ($Profile -eq "win7-legacy") { "Python 3.8 (win7-legacy exam-env)" } else { "Python 3.8 (win10plus exam-env)" }
+& $VenvPython -m ipykernel install --user --name $kernelName --display-name $kernelDisplay
 
 Write-Host ""
-Write-Host "Offline install complete."
+Write-Host "Offline install complete (profile: $Profile)."
 Write-Host "Start Jupyter: .\launch-jupyter-windows.bat"

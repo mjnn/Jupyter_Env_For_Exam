@@ -9,8 +9,14 @@ dist/
 
 # Offline caches (large; regenerate with prepare-offline-*. scripts)
 offline-windows/wheels/
+offline-windows/wheels-win10plus/
+offline-windows/wheels-win7-legacy/
 offline-windows/.build-venv/
+offline-windows/.build-venv-win10plus/
+offline-windows/.build-venv-win7-legacy/
 offline-windows/requirements-py38.txt
+offline-windows/requirements-py38-win10plus.txt
+offline-windows/requirements-py38-win7-legacy.txt
 offline-windows/python-3.12.8-amd64.exe
 offline-windows/python-3.8.10-amd64.exe
 offline-macos/wheels/
@@ -33,3 +39,6 @@ Thumbs.db
 
 # Local tooling (optional)
 .cursor/
+
+# Launcher logs (dev)
+logs/

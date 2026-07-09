@@ -1,3 +1,8 @@
+param(
+    [ValidateSet("win10plus", "win7-legacy")]
+    [string]$Profile = "win10plus"
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
@@ -11,9 +16,10 @@ else {
     $OfflineRoot = Join-Path $ProjectRoot "offline-windows"
 }
 
-$WheelDir = Join-Path $OfflineRoot "wheels"
-$BuildVenv = Join-Path $OfflineRoot ".build-venv"
-$ReqPath = Join-Path $ProjectRoot "requirements-py38.txt"
+$WheelDir = Join-Path $OfflineRoot "wheels-$Profile"
+$BuildVenv = Join-Path $OfflineRoot ".build-venv-$Profile"
+$ReqFileName = if ($Profile -eq "win7-legacy") { "requirements-py38-win7-legacy.txt" } else { "requirements-py38-win10plus.txt" }
+$ReqPath = Join-Path $ProjectRoot $ReqFileName
 $PythonInstaller = Join-Path $OfflineRoot "python-3.8.10-amd64.exe"
 
 if (-not (Test-Path $ReqPath)) {
@@ -93,12 +99,12 @@ $PyUrl = "https://www.python.org/ftp/python/3.8.10/python-3.8.10-amd64.exe"
 Invoke-WebRequest -Uri $PyUrl -OutFile $PythonInstaller
 
 Write-Host "==> Copying required files into offline bundle..."
-Copy-Item -Path $ReqPath -Destination (Join-Path $OfflineRoot "requirements-py38.txt") -Force
+Copy-Item -Path $ReqPath -Destination (Join-Path $OfflineRoot $ReqFileName) -Force
 $InstallScript = Join-Path $ProjectRoot "install-offline-windows.ps1"
 if (Test-Path $InstallScript) {
     Copy-Item -Path $InstallScript -Destination (Join-Path $OfflineRoot "install-offline-windows.ps1") -Force
 }
 
 Write-Host ""
-Write-Host "Offline bundle ready at: $OfflineRoot"
+Write-Host "Offline bundle ready at: $OfflineRoot (profile: $Profile)"
 Write-Host "Copy 'offline-windows' + project files to target Windows machine."

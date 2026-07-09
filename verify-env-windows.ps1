@@ -1,9 +1,15 @@
+param(
+    [ValidateSet("win10plus", "win7-legacy")]
+    [string]$Profile = "win10plus"
+)
+
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
 $ProjectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $VenvPython = Join-Path $ProjectRoot ".venv38\Scripts\python.exe"
-$ReqPath = Join-Path $ProjectRoot "requirements-py38.txt"
+$ReqFileName = if ($Profile -eq "win7-legacy") { "requirements-py38-win7-legacy.txt" } else { "requirements-py38-win10plus.txt" }
+$ReqPath = Join-Path $ProjectRoot $ReqFileName
 
 if (-not (Test-Path $VenvPython)) {
     throw "Virtual environment not found: $VenvPython"
@@ -60,10 +66,11 @@ Write-Host "All pinned packages match."
 Write-Host "==> Jupyter kernel check"
 $kernels = & $VenvPython -m jupyter kernelspec list --json | ConvertFrom-Json
 $kernelNames = @($kernels.kernelspecs.PSObject.Properties.Name)
-if ($kernelNames -notcontains "py38-exam") {
-    throw "Kernel 'py38-exam' not found."
+$kernelName = if ($Profile -eq "win7-legacy") { "py38-win7-exam" } else { "py38-win10plus-exam" }
+if ($kernelNames -notcontains $kernelName) {
+    throw "Kernel '$kernelName' not found."
 }
-Write-Host "Kernel 'py38-exam' is registered."
+Write-Host "Kernel '$kernelName' is registered."
 
 Write-Host ""
 Write-Host "Verification passed." -ForegroundColor Green
